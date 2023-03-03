@@ -1,0 +1,166 @@
+import React, { useEffect, useState } from 'react';
+import { Card, TextField } from '@mui/material';
+import FormControl from '@mui/material/FormControl';
+import Button from '@mui/material/Button';
+import { firestore } from '../firebase';
+import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { Select, MenuItem, InputLabel, NativeSelect } from '@mui/material';
+import { contains } from '@firebase/util';
+import Snackbar from '@mui/material/Snackbar';
+
+const AddNewVitamins = () => {
+    const [dbData, setDbData] = useState('');
+    const [formData, setFormData] = useState('');
+    const [formDate, setformDate] = useState('');
+    const [formTime, setformTime] = useState('');
+    const [formMonth, setformMonth] = useState('');
+    const [open, setOpen] = useState(false);
+    const [notifyMsg, setNotifyMsg] = useState('');
+
+    const ref = collection(firestore, "vitaminName");
+
+    const getFirestoreData = async () => {
+        const val = collection(firestore, "vitaminName");
+        const querySnapshot = await getDocs(val);
+        const scheduleData = [];
+        querySnapshot.forEach((doc) => {
+            console.log(doc.id, " => ", doc.data());
+            scheduleData.push(doc.data());
+        });
+        setDbData(scheduleData);
+    }
+
+    useEffect(() => {
+        getFirestoreData();
+    }, []);
+
+
+    const onSubmit = (e) => {
+        console.log("save");
+        let data = {
+            vitamin: formData,
+            day: formDate,
+            month: formMonth,
+            time: formTime
+        }
+        try {
+            const dupeList = dbData.filter(each => each.vitamin === formData);
+            if (dupeList.length === 0) {
+                addDoc(ref, data);
+            } else {
+                setOpen(true);
+                setNotifyMsg('Duplicate exists!')
+            }
+        } catch {
+            console.log(e);
+        }
+        const newState = {
+            vertical: 'top',
+            horizontal: 'center',
+        }
+        setOpen(true);
+        setNotifyMsg('Pill schedule added successfully!');
+        setTimeout(() => {
+            setOpen(false);
+        }, 5000);
+    }
+
+    const handleChange = e => {
+        // console.log(e.target.value);
+        if (e.target.name === 'time') {
+            setformTime(e.target.value);
+        } else if (e.target.name === 'day') {
+            setformDate(e.target.value);
+        } else if (e.target.name === 'month') {
+            setformMonth(e.target.value);
+        } else {
+            setFormData(e.target.value);
+        }
+    }
+
+    const vitaminList = ["Select Vitamin", "Vitamin A", "Vitamin B", "Vitamin C", "Vitamin D", "Vitamin E"];
+
+    return (
+        <div style={{ padding: 30 }}>
+            <h2 style={{ color: 'white' }}>Add new vitamin</h2>
+            <div style={{ color: 'white', fontWeight: 'bold' }}>Vitamin Name</div>
+            <Snackbar
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                open={open}
+                onClose={() => setOpen(false)}
+                message={notifyMsg}
+                style={{ background: 'white' }}
+            // key={vertical + horizontal}
+            />
+            <Card style={{ padding: 10, width: '90%' }}>
+                <FormControl sx={{ minWidth: '100%' }}>
+                    <NativeSelect
+                        defaultValue={30}
+                        inputProps={{
+                            name: 'age',
+                            id: 'uncontrolled-native',
+                            native: false,
+                            defaultOpen:true
+                        }}
+                        onChange={(e) => handleChange(e)}
+                       
+                    >
+                        {
+                            vitaminList.map(each => (
+                                <option key={each} value={each}>{each}</option>
+                            ))
+                        }
+                        {/* <option value="Vitamin B">Vitamin B</option>
+                        <option value="Vitamin C">Vitamin C</option> */}
+                    </NativeSelect>
+                </FormControl>
+            </Card>
+            <div style={{ marginTop: 20, color: 'white', fontWeight: 'bold' }}>Date and Time</div>
+            <Card style={{ padding: 10, width: '90%' }}>
+                <FormControl sx={{ width: '6ch', marginRight: '2ch' }}>
+                    <TextField
+                        id="outlined-basic"
+                        variant="filled"
+                        defaultValue="mm"
+                        name='month'
+                        onChange={(e) => handleChange(e)}
+                    />
+                </FormControl>
+                <FormControl sx={{ width: '6ch', marginRight: '2ch' }}>
+                    <TextField
+                        id="outlined-basic"
+                        variant="filled"
+                        defaultValue="dd"
+                        name='day'
+                        onChange={(e) => handleChange(e)}
+
+                    />
+                </FormControl>
+                <FormControl sx={{ width: '10ch' }}>
+                    <TextField
+                        id="outlined-basic"
+                        variant="filled"
+                        name='time'
+                        defaultValue="hh:mm"
+                        onChange={(e) => handleChange(e)}
+                    />
+                </FormControl>
+            </Card>
+            <Button
+                variant="outlined"
+                style={{
+                    background: 'white',
+                    color: 'black',
+                    fontWeight: 'bold',
+                    marginTop: 10,
+                    float: 'right'
+                }}
+                onClick={onSubmit}
+            >
+                Submit
+            </Button>
+        </div>
+    )
+}
+
+export default AddNewVitamins;
